@@ -37,13 +37,13 @@ zero frauds. This notebook shows exactly what to do instead.
 
 ## Key Results
 
-| Method | Recall | PR-AUC |
-|--------|--------|--------|
-| Baseline LR | — | — |
-| + Class Weights | — | — |
-| + Threshold Tuning | — | — |
-| Random Forest | — | — |
-| XGBoost | — | — |
+| Method | PR-AUC | ROC-AUC |
+|--------|--------|---------|
+| Baseline LR (no intervention) | 0.743 | 0.955 |
+| LR + Class Weights | 0.720 | 0.971 |
+| Random Forest (balanced weights) | 0.849 | 0.958 |
+| XGBoost (scale_pos_weight) | **0.881** | 0.969 |
+| Random classifier (baseline) | 0.0017 | 0.500 |
 
 ## Quickstart
 
