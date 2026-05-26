@@ -64,3 +64,11 @@ jupyter notebook imbalanced_data_classification.ipynb
 ```
 
 ## Core Lessons
+
+TBD
+
+## References
+
+- [imbalanced-learn documentation](https://imbalanced-learn.org/stable/)
+- Chawla et al. (2002) — *SMOTE: Synthetic Minority Over-sampling Technique*
+- Davis & Goadrich (2006) — *The Relationship Between Precision-Recall and ROC Curves*
