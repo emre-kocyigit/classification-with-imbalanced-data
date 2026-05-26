@@ -65,7 +65,64 @@ jupyter notebook imbalanced_data_classification.ipynb
 
 ## Core Lessons
 
-TBD
+> Grounded in real results on the Kaggle Credit Card Fraud dataset (0.172% positive rate).
+
+### 1. Accuracy is the wrong metric — always
+A model that predicts "legitimate" for every transaction scores **99.83% accuracy** and catches
+zero fraud. Never use accuracy to evaluate or compare models on imbalanced data.
+
+### 2. PR-AUC is the honest metric. ROC-AUC flatters.
+| | ROC-AUC range | PR-AUC range |
+|-|---------------|--------------|
+| All 4 models | 0.955 → 0.971 | 0.720 → 0.881 |
+
+ROC-AUC suggests all models are roughly equivalent. PR-AUC reveals a 16-point gap.
+ROC-AUC is diluted by the enormous TN count (284k legitimate transactions).
+PR-AUC uses only TP, FP, FN — the majority class cannot inflate it.
+
+### 3. Model choice matters more than resampling
+SMOTE, ADASYN, and SMOTETomek all produced PR-AUC ≈ 0.75 with Logistic Regression.
+XGBoost with just `scale_pos_weight` hit **PR-AUC = 0.881** — no resampling needed.
+Pick the right model before reaching for synthetic data generation.
+
+### 4. Class weights are your first line of defence
+One parameter change. Zero data modification. No leakage risk.
+Always try `class_weight='balanced'` (sklearn) or `scale_pos_weight` (XGBoost) before
+anything else. It is free and it should be your default.
+
+### 5. Resampling shifts recall — it does not improve ranking
+Oversampling and SMOTE dramatically increased Recall (0.63 → 0.95).
+But PR-AUC barely moved. Resampling changes *where on the PR curve you operate*,
+not the curve itself. Use it when you need high recall at a specific threshold,
+not as a general-purpose fix.
+
+### 6. Tune the threshold — it is free
+The default 0.5 threshold assumes balanced classes. With 0.17% fraud it is almost
+always wrong. Scanning the PR curve for the threshold that maximises F2 (recall-weighted)
+costs nothing and can close most of the gap before any other intervention.
+
+### 7. SMOTE inside the pipeline — or not at all
+```python
+# WRONG — leaks validation data into resampling
+X_smote, y_smote = SMOTE().fit_resample(X_train, y_train)
+cross_val_score(clf, X_smote, y_smote, cv=5)
+
+# CORRECT — resampling stays inside each fold
+pipe = ImbPipeline([('smote', SMOTE()), ('clf', clf)])
+cross_val_score(pipe, X_train, y_train, cv=StratifiedKFold(5))
+```
+Leakage inflates every metric and gives you false confidence in production.
+
+### 8. The intervention hierarchy — cheapest first
+```
+1. Fix your metric        → PR-AUC, Recall, F-beta. Never accuracy.
+2. Tune the threshold     → free, works on any trained model
+3. Add class weights      → one parameter, should be your default
+4. Use a stronger model   → RF / XGBoost beat LR + SMOTE on this dataset
+5. Resample (SMOTE etc.)  → inside imblearn.Pipeline + StratifiedKFold only
+6. Collect more data      → if none of the above is enough
+7. Reframe the problem    → anomaly detection, one-class classification
+```
 
 ## References
 
