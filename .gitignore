@@ -7,3 +7,5 @@ creditcard.csv
 
 # Cursor
 .cursor/
+.DS_Store
+venv/
