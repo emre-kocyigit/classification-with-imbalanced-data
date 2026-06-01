@@ -29,21 +29,29 @@ zero frauds. This notebook shows exactly what to do instead.
 | §4 | EDA — class imbalance, Amount distribution, feature correlations |
 | §7 | Baseline — Logistic Regression, no intervention |
 | §8 | Class weights — one-parameter fix, zero data modification |
+| §8b | Class weights + threshold tuning — fixing the precision collapse |
 | §9 | Threshold tuning — free optimisation on any trained model |
 | §10 | Resampling — SMOTE, ADASYN, SMOTETomek inside leakage-proof pipelines |
 | §11 | Stronger models — Random Forest & XGBoost with class weighting |
+| §11b | XGBoost hyperparameter tuning with RandomizedSearchCV |
+| §11c | Threshold tuning on tree-based models |
 | §12 | PR curve vs ROC curve — visual proof of why PR-AUC is the honest metric |
 | §14 | Final comparison table across all methods |
 
 ## Key Results
 
-| Method | PR-AUC | ROC-AUC |
-|--------|--------|---------|
-| Baseline LR (no intervention) | 0.743 | 0.955 |
-| LR + Class Weights | 0.720 | 0.971 |
-| Random Forest (balanced weights) | 0.849 | 0.958 |
-| XGBoost (scale_pos_weight) | **0.881** | 0.969 |
-| Random classifier (baseline) | 0.0017 | 0.500 |
+| Method | Recall | Precision | F2 | PR-AUC |
+|--------|--------|-----------|-----|--------|
+| Baseline LR | 0.643 | 0.829 | 0.673 | 0.743 |
+| LR + Class Weights | 0.918 | 0.059 | 0.234 | 0.720 |
+| LR + Class Weights + Threshold | 0.837 | 0.766 | 0.822 | 0.720 |
+| LR + Threshold Tuning | 0.878 | 0.585 | 0.798 | 0.743 |
+| Random Forest | 0.755 | 0.961 | 0.789 | 0.849 |
+| Random Forest + Threshold | 0.867 | 0.850 | 0.864 | 0.849 |
+| XGBoost (scale_pos_weight) | 0.847 | 0.883 | 0.854 | 0.881 |
+| XGBoost (RandomizedSearch tuned) | 0.847 | 0.856 | 0.849 | 0.881 |
+| **XGBoost Tuned + Threshold** | **0.878** | **0.827** | **0.867** | **0.881** |
+| Random classifier | — | — | — | 0.0017 |
 
 ## Quickstart
 
@@ -113,15 +121,22 @@ cross_val_score(pipe, X_train, y_train, cv=StratifiedKFold(5))
 ```
 Leakage inflates every metric and gives you false confidence in production.
 
-### 8. The intervention hierarchy — cheapest first
+### 8. Hyperparameter tuning — optimise for the right metric
+When tuning, set `scoring='average_precision'` (PR-AUC) not accuracy.
+The search metric must match your production metric.
+On clean PCA features, XGBoost tuning gave marginal gain — the defaults
+were already strong. Threshold tuning gave more.
+
+### 9. The intervention hierarchy — cheapest first
 ```
 1. Fix your metric        → PR-AUC, Recall, F-beta. Never accuracy.
-2. Tune the threshold     → free, works on any trained model
+2. Tune the threshold     → free, works on any trained model, always do this last
 3. Add class weights      → one parameter, should be your default
 4. Use a stronger model   → RF / XGBoost beat LR + SMOTE on this dataset
-5. Resample (SMOTE etc.)  → inside imblearn.Pipeline + StratifiedKFold only
-6. Collect more data      → if none of the above is enough
-7. Reframe the problem    → anomaly detection, one-class classification
+5. Tune hyperparameters   → optimise for PR-AUC, not accuracy
+6. Resample (SMOTE etc.)  → inside imblearn.Pipeline + StratifiedKFold only
+7. Collect more data      → if none of the above is enough
+8. Reframe the problem    → anomaly detection, one-class classification
 ```
 
 ## References
